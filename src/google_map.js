@@ -629,6 +629,10 @@ class HereMaps extends Component {
         });
         const defaultLayers = HereMapsPlatform.createDefaultLayers();
 
+        const domNode = ReactDOM.findDOMNode(this.googleMapDom_);
+        console.info('domNode', domNode);
+        console.info('apiKey', this.props.apiKey);
+
         const map = new H.Map(
           ReactDOM.findDOMNode(this.googleMapDom_),
           defaultLayers.vector.normal.map,
