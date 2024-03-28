@@ -587,6 +587,7 @@ class HereMaps extends Component {
     //   draggable: this.props.draggable,
     // };
 
+    const options = { ...this.props.options };
     const minZoom = this._computeMinZoom(options.minZoom);
     this.minZoom_ = minZoom;
 
