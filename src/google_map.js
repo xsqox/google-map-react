@@ -639,7 +639,7 @@ class HereMaps extends Component {
     })();
 
     this.map_ = map;
-    this.map.getViewPort().resize();
+    this.map_.getViewPort().resize();
 
     // this.maps_ = maps;
 
