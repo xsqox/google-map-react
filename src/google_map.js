@@ -1,4 +1,5 @@
 /* eslint-disable import/no-extraneous-dependencies, react/forbid-prop-types, react/no-find-dom-node, no-console, no-undef */
+/* global H */
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import ReactDOM from 'react-dom';
@@ -95,7 +96,7 @@ const isFullScreen = () =>
   document.mozFullScreen ||
   document.msFullscreenElement;
 
-class GoogleMap extends Component {
+class HereMaps extends Component {
   static propTypes = {
     apiKey: PropTypes.string,
     bootstrapURLKeys: PropTypes.any,
@@ -617,10 +618,30 @@ class GoogleMap extends Component {
 
         mapOptions.minZoom = _checkMinZoom(mapOptions.minZoom, minZoom);
 
-        const map = new maps.Map(
+        // const map = new maps.Map(
+        //   ReactDOM.findDOMNode(this.googleMapDom_),
+        //   mapOptions
+        // );
+
+        // instantiate Here Maps instead of maps
+        const HereMapsPlatform = new H.service.Platform({
+          apikey: this.props.apiKey,
+        });
+        const defaultLayers = HereMapsPlatform.createDefaultLayers();
+
+        const map = new H.Map(
           ReactDOM.findDOMNode(this.googleMapDom_),
-          mapOptions
+          defaultLayers.vector.normal.map,
+          {
+            zoom: this.props.defaultZoom,
+            center: this.props.center,
+            ...mapOptions,
+          }
         );
+        const mapEvents = new H.mapevents.MapEvents(map);
+        (() => {
+          return new H.mapevents.Behavior(mapEvents);
+        })();
 
         this.map_ = map;
         this.maps_ = maps;
@@ -1170,4 +1191,4 @@ class GoogleMap extends Component {
   }
 }
 
-export default GoogleMap;
+export default HereMaps;

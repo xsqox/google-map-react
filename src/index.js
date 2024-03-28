@@ -1,4 +1,4 @@
-import GoogleMap from './google_map';
+import HereMaps from './google_map';
 
 export {
   convertNeSwToNwSe,
@@ -10,4 +10,4 @@ export {
   getTilesIds,
 } from './lib';
 
-export default GoogleMap;
+export default HereMaps;
