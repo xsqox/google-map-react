@@ -1,5 +1,5 @@
 {
-  "name": "google-map-react",
+  "name": "here-maps-react",
   "version": "2.2.1",
   "description": "Isomorphic component that allows rendering react components on Here Maps",
   "author": "kbaluk https://github.com/xsqox",
