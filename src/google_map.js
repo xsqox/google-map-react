@@ -558,6 +558,7 @@ class HereMaps extends Component {
     }
 
     const centerLatLng = this.geoService_.getCenter();
+    console.info('centerLatLng', centerLatLng);
 
     const propsOptions = {
       zoom: this.props.zoom || this.props.defaultZoom,
