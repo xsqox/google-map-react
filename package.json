@@ -1,6 +1,6 @@
 {
   "name": "here-maps-react-wrapper",
-  "version": "0.1.5-alpha",
+  "version": "0.1.6-alpha",
   "description": "Isomorphic component that allows rendering react components on Here Maps",
   "author": "kbaluk https://github.com/xsqox",
   "license": "MIT",
@@ -60,7 +60,8 @@
     "react-scripts": "^3.4.1"
   },
   "files": [
-    "dist"
+    "dist",
+    "src"
   ],
   "keywords": [
     "react",
