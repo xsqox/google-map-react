@@ -9,7 +9,7 @@ import GoogleMapMap from './google_map_map';
 import MarkerDispatcher from './marker_dispatcher';
 import GoogleMapMarkers from './google_map_markers';
 import GoogleMapMarkersPrerender from './google_map_markers_prerender';
-import { generateHeatmap, optionsHeatmap } from './google_heatmap';
+// import { generateHeatmap, optionsHeatmap } from './google_heatmap';
 
 // loaders
 import googleMapLoader from './loaders/google_map_loader';
@@ -18,7 +18,7 @@ import googleMapLoader from './loaders/google_map_loader';
 import Geo from './lib/geo';
 
 // tools
-import raf from './utils/raf';
+// import raf from './utils/raf';
 import log2 from './utils/log2';
 import omit from './utils/omit';
 import pick from './utils/pick';
@@ -43,7 +43,7 @@ const K_IDLE_CLICK_TIMEOUT = 300;
 const DEFAULT_MIN_ZOOM = 3;
 // Starting with version 3.32, the maps API calls `draw()` each frame during
 // a zoom animation.
-const DRAW_CALLED_DURING_ANIMATION_VERSION = 32;
+// const DRAW_CALLED_DURING_ANIMATION_VERSION = 32;
 const IS_REACT_16 = ReactDOM.createPortal !== undefined;
 
 const createPortal = IS_REACT_16
@@ -546,325 +546,618 @@ class HereMaps extends Component {
     );
 
     this._onBoundsChanged(); // now we can calculate map bounds center etc...
+    //
+    // const bootstrapURLKeys = {
+    //   ...(this.props.apiKey && { key: this.props.apiKey }),
+    //   ...this.props.bootstrapURLKeys,
+    // };
 
-    const bootstrapURLKeys = {
-      ...(this.props.apiKey && { key: this.props.apiKey }),
-      ...this.props.bootstrapURLKeys,
+    // init here maps
+    if (!this.mounted_) {
+      return;
+    }
+
+    const centerLatLng = this.geoService_.getCenter();
+
+    const propsOptions = {
+      zoom: this.props.zoom || this.props.defaultZoom,
+      center: { lat: centerLatLng.lat, lng: centerLatLng.lng },
     };
 
-    this.props
-      .googleMapLoader(bootstrapURLKeys, this.props.heatmapLibrary)
-      .then((maps) => {
-        if (!this.mounted_) {
-          return;
+    // prevent to exapose full api
+    // next props must be exposed (console.log(Object.keys(pick(maps, isPlainObject))))
+    // "Animation", "ControlPosition", "MapTypeControlStyle", "MapTypeId",
+    // "NavigationControlStyle", "ScaleControlStyle", "StrokePosition",
+    // "SymbolPath", "ZoomControlStyle",
+    // "event", "DirectionsStatus", "DirectionsTravelMode", "DirectionsUnitSystem",
+    // "DistanceMatrixStatus",
+    // "DistanceMatrixElementStatus", "ElevationStatus", "GeocoderLocationType",
+    // "GeocoderStatus", "KmlLayerStatus",
+    // "MaxZoomStatus", "StreetViewStatus", "TransitMode", "TransitRoutePreference",
+    // "TravelMode", "UnitSystem"
+    // const mapPlainObjects = pick(maps, isPlainObject);
+    // const options =
+    //   typeof this.props.options === 'function'
+    //     ? this.props.options(mapPlainObjects)
+    //     : this.props.options;
+    // const defaultOptions = defaultOptions_(mapPlainObjects);
+    //
+    // const draggableOptions = !isEmpty(this.props.draggable) && {
+    //   draggable: this.props.draggable,
+    // };
+
+    const minZoom = this._computeMinZoom(options.minZoom);
+    this.minZoom_ = minZoom;
+
+    const preMapOptions = {
+      // ...defaultOptions,
+      minZoom,
+      // ...options,
+      ...propsOptions,
+    };
+
+    this.defaultDraggableOption_ = !isEmpty(preMapOptions.draggable)
+      ? preMapOptions.draggable
+      : this.defaultDraggableOption_;
+
+    const mapOptions = {
+      ...preMapOptions,
+      // ...draggableOptions,
+    };
+
+    mapOptions.minZoom = _checkMinZoom(mapOptions.minZoom, minZoom);
+
+    // const map = new maps.Map(
+    //   ReactDOM.findDOMNode(this.googleMapDom_),
+    //   mapOptions
+    // );
+
+    // instantiate Here Maps instead of maps
+    const HereMapsPlatform = new H.service.Platform({
+      apikey: this.props.apiKey,
+    });
+    const defaultLayers = HereMapsPlatform.createDefaultLayers();
+
+    const domNode = ReactDOM.findDOMNode(this.googleMapDom_);
+    console.info('domNode', domNode);
+    console.info('apiKey', this.props.apiKey);
+
+    const map = new H.Map(
+      ReactDOM.findDOMNode(this.googleMapDom_),
+      defaultLayers.vector.normal.map,
+      {
+        zoom: this.props.defaultZoom,
+        center: this.props.center,
+        ...mapOptions,
+      }
+    );
+    const mapEvents = new H.mapevents.MapEvents(map);
+    (() => {
+      return new H.mapevents.Behavior(mapEvents);
+    })();
+
+    this.map_ = map;
+    this.map.getViewPort().resize();
+
+    // this.maps_ = maps;
+
+    this._setLayers(this.props.layerTypes);
+
+    // // Parse `google.maps.version` to capture the major version number.
+    // const versionMatch = maps.version.match(/^3\.(\d+)\./);
+    // // The major version is the first (and only) captured group.
+    // const mapsVersion = versionMatch && Number(versionMatch[1]);
+
+    // render in overlay
+    const this_ = this;
+    const overlay = Object.assign(new H.map.Overlay(), {
+      onAdd() {
+        const K_MAX_WIDTH =
+          typeof screen !== 'undefined' ? `${screen.width}px` : '2000px';
+        const K_MAX_HEIGHT =
+          typeof screen !== 'undefined' ? `${screen.height}px` : '2000px';
+
+        const div = document.createElement('div');
+        div.style.backgroundColor = 'transparent';
+        div.style.position = 'absolute';
+        div.style.left = '0px';
+        div.style.top = '0px';
+        div.style.width = K_MAX_WIDTH; // prevents some chrome draw defects
+        div.style.height = K_MAX_HEIGHT;
+
+        if (this_.props.overlayViewDivStyle) {
+          const { overlayViewDivStyle } = this_.props;
+          if (typeof overlayViewDivStyle === 'object') {
+            Object.keys(overlayViewDivStyle).forEach((property) => {
+              div.style[property] = overlayViewDivStyle[property];
+            });
+          }
         }
 
-        const centerLatLng = this.geoService_.getCenter();
+        const panes = this.getPanes();
+        panes.overlayMouseTarget.appendChild(div);
+        this_.geoService_.setMapCanvasProjection(map, overlay.getProjection());
 
-        const propsOptions = {
-          zoom: this.props.zoom || this.props.defaultZoom,
-          center: new maps.LatLng(centerLatLng.lat, centerLatLng.lng),
-        };
-
-        // Start Heatmap
-        if (this.props.heatmap.positions) {
-          Object.assign(this, {
-            heatmap: generateHeatmap(maps, this.props.heatmap),
-          });
-          optionsHeatmap(this.heatmap, this.props.heatmap);
+        if (!IS_REACT_16) {
+          createPortal(
+            this_,
+            this_._renderPortal(),
+            div,
+            // remove prerendered markers
+            () => this_.setState({ overlay: div })
+          );
+        } else {
+          this_.setState({ overlay: div });
         }
-        // End Heatmap
+      },
 
-        // prevent to exapose full api
-        // next props must be exposed (console.log(Object.keys(pick(maps, isPlainObject))))
-        // "Animation", "ControlPosition", "MapTypeControlStyle", "MapTypeId",
-        // "NavigationControlStyle", "ScaleControlStyle", "StrokePosition",
-        // "SymbolPath", "ZoomControlStyle",
-        // "event", "DirectionsStatus", "DirectionsTravelMode", "DirectionsUnitSystem",
-        // "DistanceMatrixStatus",
-        // "DistanceMatrixElementStatus", "ElevationStatus", "GeocoderLocationType",
-        // "GeocoderStatus", "KmlLayerStatus",
-        // "MaxZoomStatus", "StreetViewStatus", "TransitMode", "TransitRoutePreference",
-        // "TravelMode", "UnitSystem"
-        const mapPlainObjects = pick(maps, isPlainObject);
-        const options =
-          typeof this.props.options === 'function'
-            ? this.props.options(mapPlainObjects)
-            : this.props.options;
-        const defaultOptions = defaultOptions_(mapPlainObjects);
+      onRemove() {
+        const renderedOverlay = this_.state.overlay;
+        if (renderedOverlay && !IS_REACT_16) {
+          ReactDOM.unmountComponentAtNode(renderedOverlay);
+        }
+        this_.setState({ overlay: null });
+      },
 
-        const draggableOptions = !isEmpty(this.props.draggable) && {
-          draggable: this.props.draggable,
-        };
+      draw() {
+        this_.updateCounter_++;
+        this_._onBoundsChanged(map, maps, !this_.props.debounced);
 
-        const minZoom = this._computeMinZoom(options.minZoom);
-        this.minZoom_ = minZoom;
-
-        const preMapOptions = {
-          ...defaultOptions,
-          minZoom,
-          ...options,
-          ...propsOptions,
-        };
-
-        this.defaultDraggableOption_ = !isEmpty(preMapOptions.draggable)
-          ? preMapOptions.draggable
-          : this.defaultDraggableOption_;
-
-        const mapOptions = {
-          ...preMapOptions,
-          ...draggableOptions,
-        };
-
-        mapOptions.minZoom = _checkMinZoom(mapOptions.minZoom, minZoom);
-
-        // const map = new maps.Map(
-        //   ReactDOM.findDOMNode(this.googleMapDom_),
-        //   mapOptions
-        // );
-
-        // instantiate Here Maps instead of maps
-        const HereMapsPlatform = new H.service.Platform({
-          apikey: this.props.apiKey,
-        });
-        const defaultLayers = HereMapsPlatform.createDefaultLayers();
-
-        const domNode = ReactDOM.findDOMNode(this.googleMapDom_);
-        console.info('domNode', domNode);
-        console.info('apiKey', this.props.apiKey);
-
-        const map = new H.Map(
-          ReactDOM.findDOMNode(this.googleMapDom_),
-          defaultLayers.vector.normal.map,
-          {
-            zoom: this.props.defaultZoom,
-            center: this.props.center,
-            ...mapOptions,
-          }
-        );
-        const mapEvents = new H.mapevents.MapEvents(map);
-        (() => {
-          return new H.mapevents.Behavior(mapEvents);
-        })();
-
-        this.map_ = map;
-        this.maps_ = maps;
-
-        this._setLayers(this.props.layerTypes);
-
-        // Parse `google.maps.version` to capture the major version number.
-        const versionMatch = maps.version.match(/^3\.(\d+)\./);
-        // The major version is the first (and only) captured group.
-        const mapsVersion = versionMatch && Number(versionMatch[1]);
-
-        // render in overlay
-        const this_ = this;
-        const overlay = Object.assign(new maps.OverlayView(), {
-          onAdd() {
-            const K_MAX_WIDTH =
-              typeof screen !== 'undefined' ? `${screen.width}px` : '2000px';
-            const K_MAX_HEIGHT =
-              typeof screen !== 'undefined' ? `${screen.height}px` : '2000px';
-
-            const div = document.createElement('div');
-            div.style.backgroundColor = 'transparent';
-            div.style.position = 'absolute';
-            div.style.left = '0px';
-            div.style.top = '0px';
-            div.style.width = K_MAX_WIDTH; // prevents some chrome draw defects
-            div.style.height = K_MAX_HEIGHT;
-
-            if (this_.props.overlayViewDivStyle) {
-              const { overlayViewDivStyle } = this_.props;
-              if (typeof overlayViewDivStyle === 'object') {
-                Object.keys(overlayViewDivStyle).forEach((property) => {
-                  div.style[property] = overlayViewDivStyle[property];
-                });
-              }
-            }
-
-            const panes = this.getPanes();
-            panes.overlayMouseTarget.appendChild(div);
-            this_.geoService_.setMapCanvasProjection(
-              maps,
-              overlay.getProjection()
-            );
-
-            if (!IS_REACT_16) {
-              createPortal(
-                this_,
-                this_._renderPortal(),
-                div,
-                // remove prerendered markers
-                () => this_.setState({ overlay: div })
-              );
-            } else {
-              this_.setState({ overlay: div });
-            }
-          },
-
-          onRemove() {
-            const renderedOverlay = this_.state.overlay;
-            if (renderedOverlay && !IS_REACT_16) {
-              ReactDOM.unmountComponentAtNode(renderedOverlay);
-            }
-            this_.setState({ overlay: null });
-          },
-
-          draw() {
-            this_.updateCounter_++;
-            this_._onBoundsChanged(map, maps, !this_.props.debounced);
-
-            if (!this_.googleApiLoadedCalled_) {
-              this_._onGoogleApiLoaded({ map, maps, ref: this_.googleMapDom_ });
-              this_.googleApiLoadedCalled_ = true;
-            }
-
-            if (this_.mouse_) {
-              const latLng = this_.geoService_.fromContainerPixelToLatLng(
-                this_.mouse_
-              );
-              this_.mouse_.lat = latLng.lat;
-              this_.mouse_.lng = latLng.lng;
-            }
-
-            this_._onChildMouseMove();
-
-            if (this_.markersDispatcher_) {
-              this_.markersDispatcher_.emit('kON_CHANGE');
-              if (this_.fireMouseEventOnIdle_) {
-                this_.markersDispatcher_.emit('kON_MOUSE_POSITION_CHANGE');
-              }
-            }
-          },
-        });
-
-        this.overlay_ = overlay;
-
-        overlay.setMap(map);
-        if (this.props.heatmap.positions) {
-          this.heatmap.setMap(map);
+        if (!this_.googleApiLoadedCalled_) {
+          this_._onGoogleApiLoaded({ map, maps, ref: this_.googleMapDom_ });
+          this_.googleApiLoadedCalled_ = true;
         }
 
-        if (this.props.onTilesLoaded) {
-          maps.event.addListener(map, 'tilesloaded', () => {
-            this_._onTilesLoaded();
-          });
+        if (this_.mouse_) {
+          const latLng = this_.geoService_.fromContainerPixelToLatLng(
+            this_.mouse_
+          );
+          this_.mouse_.lat = latLng.lat;
+          this_.mouse_.lng = latLng.lng;
         }
 
-        maps.event.addListener(map, 'zoom_changed', () => {
-          // recalc position at zoom start
-          if (this_.geoService_.getZoom() !== map.getZoom()) {
-            if (!this_.zoomAnimationInProgress_) {
-              this_.zoomAnimationInProgress_ = true;
-              this_._onZoomAnimationStart(map.zoom);
-            }
+        this_._onChildMouseMove();
 
-            // If draw() is not called each frame during a zoom animation,
-            // simulate it.
-            if (mapsVersion < DRAW_CALLED_DURING_ANIMATION_VERSION) {
-              const TIMEOUT_ZOOM = 300;
-
-              if (
-                new Date().getTime() - this.zoomControlClickTime_ <
-                TIMEOUT_ZOOM
-              ) {
-                // there is strange Google Map Api behavior in chrome when zoom animation of map
-                // is started only on second raf call, if was click on zoom control
-                // or +- keys pressed, so i wait for two rafs before change state
-
-                // this does not fully prevent animation jump
-                // but reduce it's occurence probability
-                raf(() =>
-                  raf(() => {
-                    this_.updateCounter_++;
-                    this_._onBoundsChanged(map, maps);
-                  })
-                );
-              } else {
-                this_.updateCounter_++;
-                this_._onBoundsChanged(map, maps);
-              }
-            }
+        if (this_.markersDispatcher_) {
+          this_.markersDispatcher_.emit('kON_CHANGE');
+          if (this_.fireMouseEventOnIdle_) {
+            this_.markersDispatcher_.emit('kON_MOUSE_POSITION_CHANGE');
           }
-        });
+        }
+      },
+    });
 
-        maps.event.addListener(map, 'idle', () => {
-          if (this.resetSizeOnIdle_) {
-            this._setViewSize();
-            const currMinZoom = this._computeMinZoom(options.minZoom);
+    this.overlay_ = overlay;
 
-            if (currMinZoom !== this.minZoom_) {
-              this.minZoom_ = currMinZoom;
-              map.setOptions({ minZoom: currMinZoom });
-            }
+    map.addObject(overlay);
+    // overlay.setMap(map);
+    // if (this.props.heatmap.positions) {
+    //   this.heatmap.setMap(map);
+    // }
 
-            this.resetSizeOnIdle_ = false;
-          }
+    // if (this.props.onTilesLoaded) {
+    //   maps.event.addListener(map, 'tilesloaded', () => {
+    //     this_._onTilesLoaded();
+    //   });
+    // }
 
-          if (this_.zoomAnimationInProgress_) {
-            this_.zoomAnimationInProgress_ = false;
-            this_._onZoomAnimationEnd(map.zoom);
-          }
+    // maps.event.addListener(map, 'zoom_changed', () => {
+    //   // recalc position at zoom start
+    //   if (this_.geoService_.getZoom() !== map.getZoom()) {
+    //     if (!this_.zoomAnimationInProgress_) {
+    //       this_.zoomAnimationInProgress_ = true;
+    //       this_._onZoomAnimationStart(map.zoom);
+    //     }
+    //
+    //     // If draw() is not called each frame during a zoom animation,
+    //     // simulate it.
+    //     if (mapsVersion < DRAW_CALLED_DURING_ANIMATION_VERSION) {
+    //       const TIMEOUT_ZOOM = 300;
+    //
+    //       if (
+    //         new Date().getTime() - this.zoomControlClickTime_ <
+    //         TIMEOUT_ZOOM
+    //       ) {
+    //         // there is strange Google Map Api behavior in chrome when zoom animation of map
+    //         // is started only on second raf call, if was click on zoom control
+    //         // or +- keys pressed, so i wait for two rafs before change state
+    //
+    //         // this does not fully prevent animation jump
+    //         // but reduce it's occurence probability
+    //         raf(() =>
+    //           raf(() => {
+    //             this_.updateCounter_++;
+    //             this_._onBoundsChanged(map, maps);
+    //           })
+    //         );
+    //       } else {
+    //         this_.updateCounter_++;
+    //         this_._onBoundsChanged(map, maps);
+    //       }
+    //     }
+    //   }
+    // });
+    //
+    // maps.event.addListener(map, 'idle', () => {
+    //   if (this.resetSizeOnIdle_) {
+    //     this._setViewSize();
+    //     const currMinZoom = this._computeMinZoom(options.minZoom);
+    //
+    //     if (currMinZoom !== this.minZoom_) {
+    //       this.minZoom_ = currMinZoom;
+    //       map.setOptions({ minZoom: currMinZoom });
+    //     }
+    //
+    //     this.resetSizeOnIdle_ = false;
+    //   }
+    //
+    //   if (this_.zoomAnimationInProgress_) {
+    //     this_.zoomAnimationInProgress_ = false;
+    //     this_._onZoomAnimationEnd(map.zoom);
+    //   }
+    //
+    //   this_.updateCounter_++;
+    //   this_._onBoundsChanged(map, maps);
+    //
+    //   this_.dragTime_ = 0;
+    //
+    //   if (this_.markersDispatcher_) {
+    //     this_.markersDispatcher_.emit('kON_CHANGE');
+    //   }
+    // });
+    //
+    // maps.event.addListener(map, 'mouseover', () => {
+    //   // has advantage over div MouseLeave
+    //   this_.mouseInMap_ = true;
+    // });
 
-          this_.updateCounter_++;
-          this_._onBoundsChanged(map, maps);
+    // an alternative way to know the mouse is back within the map
+    // This would not fire when clicking/interacting with google maps
+    // own on-map countrols+markers. This handles an edge case for touch devices
+    // + 'draggable:false' custom option. See #332 for more details.
+    // maps.event.addListener(map, 'click', () => {
+    //   this_.mouseInMap_ = true;
+    // });
+    //
+    // maps.event.addListener(map, 'mouseout', () => {
+    //   // has advantage over div MouseLeave
+    //   this_.mouseInMap_ = false;
+    //   this_.mouse_ = null;
+    //   this_.markersDispatcher_.emit('kON_MOUSE_POSITION_CHANGE');
+    // });
+    //
+    // maps.event.addListener(map, 'drag', () => {
+    //   this_.dragTime_ = new Date().getTime();
+    //   this_._onDrag(map);
+    // });
+    //
+    // maps.event.addListener(map, 'dragend', () => {
+    //   // 'dragend' fires on mouse release.
+    //   // 'idle' listener waits until drag inertia ends before firing `onDragEnd`
+    //   const idleListener = maps.event.addListener(map, 'idle', () => {
+    //     maps.event.removeListener(idleListener);
+    //     this_._onDragEnd(map);
+    //   });
+    // });
+    // // user choosing satellite vs roads, etc
+    // maps.event.addListener(map, 'maptypeid_changed', () => {
+    //   this_._onMapTypeIdChange(map.getMapTypeId());
+    // });
 
-          this_.dragTime_ = 0;
-
-          if (this_.markersDispatcher_) {
-            this_.markersDispatcher_.emit('kON_CHANGE');
-          }
-        });
-
-        maps.event.addListener(map, 'mouseover', () => {
-          // has advantage over div MouseLeave
-          this_.mouseInMap_ = true;
-        });
-
-        // an alternative way to know the mouse is back within the map
-        // This would not fire when clicking/interacting with google maps
-        // own on-map countrols+markers. This handles an edge case for touch devices
-        // + 'draggable:false' custom option. See #332 for more details.
-        maps.event.addListener(map, 'click', () => {
-          this_.mouseInMap_ = true;
-        });
-
-        maps.event.addListener(map, 'mouseout', () => {
-          // has advantage over div MouseLeave
-          this_.mouseInMap_ = false;
-          this_.mouse_ = null;
-          this_.markersDispatcher_.emit('kON_MOUSE_POSITION_CHANGE');
-        });
-
-        maps.event.addListener(map, 'drag', () => {
-          this_.dragTime_ = new Date().getTime();
-          this_._onDrag(map);
-        });
-
-        maps.event.addListener(map, 'dragend', () => {
-          // 'dragend' fires on mouse release.
-          // 'idle' listener waits until drag inertia ends before firing `onDragEnd`
-          const idleListener = maps.event.addListener(map, 'idle', () => {
-            maps.event.removeListener(idleListener);
-            this_._onDragEnd(map);
-          });
-        });
-        // user choosing satellite vs roads, etc
-        maps.event.addListener(map, 'maptypeid_changed', () => {
-          this_._onMapTypeIdChange(map.getMapTypeId());
-        });
-      })
-      .catch((e) => {
-        // notify callback of load failure
-        this._onGoogleApiLoaded({
-          map: null,
-          maps: null,
-          ref: this.googleMapDom_,
-        });
-        console.error(e); // eslint-disable-line no-console
-        throw e;
-      });
+    //   this.props
+    //     .googleMapLoader(bootstrapURLKeys, this.props.heatmapLibrary)
+    //     .then((maps) => {
+    //       if (!this.mounted_) {
+    //         return;
+    //       }
+    //
+    //       const centerLatLng = this.geoService_.getCenter();
+    //
+    //       const propsOptions = {
+    //         zoom: this.props.zoom || this.props.defaultZoom,
+    //         center: new maps.LatLng(centerLatLng.lat, centerLatLng.lng),
+    //       };
+    //
+    //       // Start Heatmap
+    //       if (this.props.heatmap.positions) {
+    //         Object.assign(this, {
+    //           heatmap: generateHeatmap(maps, this.props.heatmap),
+    //         });
+    //         optionsHeatmap(this.heatmap, this.props.heatmap);
+    //       }
+    //       // End Heatmap
+    //
+    //       // prevent to exapose full api
+    //       // next props must be exposed (console.log(Object.keys(pick(maps, isPlainObject))))
+    //       // "Animation", "ControlPosition", "MapTypeControlStyle", "MapTypeId",
+    //       // "NavigationControlStyle", "ScaleControlStyle", "StrokePosition",
+    //       // "SymbolPath", "ZoomControlStyle",
+    //       // "event", "DirectionsStatus", "DirectionsTravelMode", "DirectionsUnitSystem",
+    //       // "DistanceMatrixStatus",
+    //       // "DistanceMatrixElementStatus", "ElevationStatus", "GeocoderLocationType",
+    //       // "GeocoderStatus", "KmlLayerStatus",
+    //       // "MaxZoomStatus", "StreetViewStatus", "TransitMode", "TransitRoutePreference",
+    //       // "TravelMode", "UnitSystem"
+    //       const mapPlainObjects = pick(maps, isPlainObject);
+    //       const options =
+    //         typeof this.props.options === 'function'
+    //           ? this.props.options(mapPlainObjects)
+    //           : this.props.options;
+    //       const defaultOptions = defaultOptions_(mapPlainObjects);
+    //
+    //       const draggableOptions = !isEmpty(this.props.draggable) && {
+    //         draggable: this.props.draggable,
+    //       };
+    //
+    //       const minZoom = this._computeMinZoom(options.minZoom);
+    //       this.minZoom_ = minZoom;
+    //
+    //       const preMapOptions = {
+    //         ...defaultOptions,
+    //         minZoom,
+    //         ...options,
+    //         ...propsOptions,
+    //       };
+    //
+    //       this.defaultDraggableOption_ = !isEmpty(preMapOptions.draggable)
+    //         ? preMapOptions.draggable
+    //         : this.defaultDraggableOption_;
+    //
+    //       const mapOptions = {
+    //         ...preMapOptions,
+    //         ...draggableOptions,
+    //       };
+    //
+    //       mapOptions.minZoom = _checkMinZoom(mapOptions.minZoom, minZoom);
+    //
+    //       // const map = new maps.Map(
+    //       //   ReactDOM.findDOMNode(this.googleMapDom_),
+    //       //   mapOptions
+    //       // );
+    //
+    //       // instantiate Here Maps instead of maps
+    //       const HereMapsPlatform = new H.service.Platform({
+    //         apikey: this.props.apiKey,
+    //       });
+    //       const defaultLayers = HereMapsPlatform.createDefaultLayers();
+    //
+    //       const domNode = ReactDOM.findDOMNode(this.googleMapDom_);
+    //       console.info('domNode', domNode);
+    //       console.info('apiKey', this.props.apiKey);
+    //
+    //       const map = new H.Map(
+    //         ReactDOM.findDOMNode(this.googleMapDom_),
+    //         defaultLayers.vector.normal.map,
+    //         {
+    //           zoom: this.props.defaultZoom,
+    //           center: this.props.center,
+    //           ...mapOptions,
+    //         }
+    //       );
+    //       const mapEvents = new H.mapevents.MapEvents(map);
+    //       (() => {
+    //         return new H.mapevents.Behavior(mapEvents);
+    //       })();
+    //
+    //       this.map_ = map;
+    //       this.maps_ = maps;
+    //
+    //       this._setLayers(this.props.layerTypes);
+    //
+    //       // Parse `google.maps.version` to capture the major version number.
+    //       const versionMatch = maps.version.match(/^3\.(\d+)\./);
+    //       // The major version is the first (and only) captured group.
+    //       const mapsVersion = versionMatch && Number(versionMatch[1]);
+    //
+    //       // render in overlay
+    //       const this_ = this;
+    //       const overlay = Object.assign(new maps.OverlayView(), {
+    //         onAdd() {
+    //           const K_MAX_WIDTH =
+    //             typeof screen !== 'undefined' ? `${screen.width}px` : '2000px';
+    //           const K_MAX_HEIGHT =
+    //             typeof screen !== 'undefined' ? `${screen.height}px` : '2000px';
+    //
+    //           const div = document.createElement('div');
+    //           div.style.backgroundColor = 'transparent';
+    //           div.style.position = 'absolute';
+    //           div.style.left = '0px';
+    //           div.style.top = '0px';
+    //           div.style.width = K_MAX_WIDTH; // prevents some chrome draw defects
+    //           div.style.height = K_MAX_HEIGHT;
+    //
+    //           if (this_.props.overlayViewDivStyle) {
+    //             const { overlayViewDivStyle } = this_.props;
+    //             if (typeof overlayViewDivStyle === 'object') {
+    //               Object.keys(overlayViewDivStyle).forEach((property) => {
+    //                 div.style[property] = overlayViewDivStyle[property];
+    //               });
+    //             }
+    //           }
+    //
+    //           const panes = this.getPanes();
+    //           panes.overlayMouseTarget.appendChild(div);
+    //           this_.geoService_.setMapCanvasProjection(
+    //             maps,
+    //             overlay.getProjection()
+    //           );
+    //
+    //           if (!IS_REACT_16) {
+    //             createPortal(
+    //               this_,
+    //               this_._renderPortal(),
+    //               div,
+    //               // remove prerendered markers
+    //               () => this_.setState({ overlay: div })
+    //             );
+    //           } else {
+    //             this_.setState({ overlay: div });
+    //           }
+    //         },
+    //
+    //         onRemove() {
+    //           const renderedOverlay = this_.state.overlay;
+    //           if (renderedOverlay && !IS_REACT_16) {
+    //             ReactDOM.unmountComponentAtNode(renderedOverlay);
+    //           }
+    //           this_.setState({ overlay: null });
+    //         },
+    //
+    //         draw() {
+    //           this_.updateCounter_++;
+    //           this_._onBoundsChanged(map, maps, !this_.props.debounced);
+    //
+    //           if (!this_.googleApiLoadedCalled_) {
+    //             this_._onGoogleApiLoaded({ map, maps, ref: this_.googleMapDom_ });
+    //             this_.googleApiLoadedCalled_ = true;
+    //           }
+    //
+    //           if (this_.mouse_) {
+    //             const latLng = this_.geoService_.fromContainerPixelToLatLng(
+    //               this_.mouse_
+    //             );
+    //             this_.mouse_.lat = latLng.lat;
+    //             this_.mouse_.lng = latLng.lng;
+    //           }
+    //
+    //           this_._onChildMouseMove();
+    //
+    //           if (this_.markersDispatcher_) {
+    //             this_.markersDispatcher_.emit('kON_CHANGE');
+    //             if (this_.fireMouseEventOnIdle_) {
+    //               this_.markersDispatcher_.emit('kON_MOUSE_POSITION_CHANGE');
+    //             }
+    //           }
+    //         },
+    //       });
+    //
+    //       this.overlay_ = overlay;
+    //
+    //       overlay.setMap(map);
+    //       if (this.props.heatmap.positions) {
+    //         this.heatmap.setMap(map);
+    //       }
+    //
+    //       if (this.props.onTilesLoaded) {
+    //         maps.event.addListener(map, 'tilesloaded', () => {
+    //           this_._onTilesLoaded();
+    //         });
+    //       }
+    //
+    //       maps.event.addListener(map, 'zoom_changed', () => {
+    //         // recalc position at zoom start
+    //         if (this_.geoService_.getZoom() !== map.getZoom()) {
+    //           if (!this_.zoomAnimationInProgress_) {
+    //             this_.zoomAnimationInProgress_ = true;
+    //             this_._onZoomAnimationStart(map.zoom);
+    //           }
+    //
+    //           // If draw() is not called each frame during a zoom animation,
+    //           // simulate it.
+    //           if (mapsVersion < DRAW_CALLED_DURING_ANIMATION_VERSION) {
+    //             const TIMEOUT_ZOOM = 300;
+    //
+    //             if (
+    //               new Date().getTime() - this.zoomControlClickTime_ <
+    //               TIMEOUT_ZOOM
+    //             ) {
+    //               // there is strange Google Map Api behavior in chrome when zoom animation of map
+    //               // is started only on second raf call, if was click on zoom control
+    //               // or +- keys pressed, so i wait for two rafs before change state
+    //
+    //               // this does not fully prevent animation jump
+    //               // but reduce it's occurence probability
+    //               raf(() =>
+    //                 raf(() => {
+    //                   this_.updateCounter_++;
+    //                   this_._onBoundsChanged(map, maps);
+    //                 })
+    //               );
+    //             } else {
+    //               this_.updateCounter_++;
+    //               this_._onBoundsChanged(map, maps);
+    //             }
+    //           }
+    //         }
+    //       });
+    //
+    //       maps.event.addListener(map, 'idle', () => {
+    //         if (this.resetSizeOnIdle_) {
+    //           this._setViewSize();
+    //           const currMinZoom = this._computeMinZoom(options.minZoom);
+    //
+    //           if (currMinZoom !== this.minZoom_) {
+    //             this.minZoom_ = currMinZoom;
+    //             map.setOptions({ minZoom: currMinZoom });
+    //           }
+    //
+    //           this.resetSizeOnIdle_ = false;
+    //         }
+    //
+    //         if (this_.zoomAnimationInProgress_) {
+    //           this_.zoomAnimationInProgress_ = false;
+    //           this_._onZoomAnimationEnd(map.zoom);
+    //         }
+    //
+    //         this_.updateCounter_++;
+    //         this_._onBoundsChanged(map, maps);
+    //
+    //         this_.dragTime_ = 0;
+    //
+    //         if (this_.markersDispatcher_) {
+    //           this_.markersDispatcher_.emit('kON_CHANGE');
+    //         }
+    //       });
+    //
+    //       maps.event.addListener(map, 'mouseover', () => {
+    //         // has advantage over div MouseLeave
+    //         this_.mouseInMap_ = true;
+    //       });
+    //
+    //       // an alternative way to know the mouse is back within the map
+    //       // This would not fire when clicking/interacting with google maps
+    //       // own on-map countrols+markers. This handles an edge case for touch devices
+    //       // + 'draggable:false' custom option. See #332 for more details.
+    //       maps.event.addListener(map, 'click', () => {
+    //         this_.mouseInMap_ = true;
+    //       });
+    //
+    //       maps.event.addListener(map, 'mouseout', () => {
+    //         // has advantage over div MouseLeave
+    //         this_.mouseInMap_ = false;
+    //         this_.mouse_ = null;
+    //         this_.markersDispatcher_.emit('kON_MOUSE_POSITION_CHANGE');
+    //       });
+    //
+    //       maps.event.addListener(map, 'drag', () => {
+    //         this_.dragTime_ = new Date().getTime();
+    //         this_._onDrag(map);
+    //       });
+    //
+    //       maps.event.addListener(map, 'dragend', () => {
+    //         // 'dragend' fires on mouse release.
+    //         // 'idle' listener waits until drag inertia ends before firing `onDragEnd`
+    //         const idleListener = maps.event.addListener(map, 'idle', () => {
+    //           maps.event.removeListener(idleListener);
+    //           this_._onDragEnd(map);
+    //         });
+    //       });
+    //       // user choosing satellite vs roads, etc
+    //       maps.event.addListener(map, 'maptypeid_changed', () => {
+    //         this_._onMapTypeIdChange(map.getMapTypeId());
+    //       });
+    //     })
+    //     .catch((e) => {
+    //       // notify callback of load failure
+    //       this._onGoogleApiLoaded({
+    //         map: null,
+    //         maps: null,
+    //         ref: this.googleMapDom_,
+    //       });
+    //       console.error(e); // eslint-disable-line no-console
+    //       throw e;
+    //     });
+    // };
   };
 
   _onGoogleApiLoaded = (...args) => {
