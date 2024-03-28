@@ -1,6 +1,8 @@
-# Google Map React &middot; [![npm version](https://badge.fury.io/js/google-map-react.svg)](http://badge.fury.io/js/google-map-react) [![Build Status](https://travis-ci.org/google-map-react/google-map-react.svg?branch=master)](https://travis-ci.org/google-map-react/google-map-react) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](github.com/google-map-react/google-map-react/CONTRIBUTING.md)
+# THIS IS TEST PACKAGE, DO NOT USE!
 
-`google-map-react` is a component written over a small set of the [Google Maps API](https://developers.google.com/maps/). It allows you to render any React component on the Google Map. It is fully isomorphic and can render on a server. Additionally, it can render map components in the browser even if the Google Maps API is not loaded. It uses an internal, tweakable hover algorithm - every object on the map can be hovered.
+# Here Maps React &middot; [![npm version](https://badge.fury.io/js/google-map-react.svg)](http://badge.fury.io/js/google-map-react) [![Build Status](https://travis-ci.org/google-map-react/google-map-react.svg?branch=master)](https://travis-ci.org/google-map-react/google-map-react) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](github.com/google-map-react/google-map-react/CONTRIBUTING.md)
+
+`here-maps-react` is a component written over a small set of the [Google Maps API](https://developers.google.com/maps/). It allows you to render any React component on the Google Map. It is fully isomorphic and can render on a server. Additionally, it can render map components in the browser even if the Google Maps API is not loaded. It uses an internal, tweakable hover algorithm - every object on the map can be hovered.
 
 It allows you to create interfaces like this [example](http://google-map-react.github.io/google-map-react/map/main) *(You can scroll the table, zoom/move the map, hover/click on markers, and click on table rows)*
 
@@ -10,39 +12,7 @@ In the simple case you just need to add `lat` and `lng` props to any child of `G
 
 [See it in action at jsbin](https://jsbin.com/ruwogapuke/1/edit?js,output)
 
-```javascript
-import React from "react";
-import GoogleMapReact from 'google-map-react';
-
-const AnyReactComponent = ({ text }) => <div>{text}</div>;
-
-export default function SimpleMap(){
-  const defaultProps = {
-    center: {
-      lat: 10.99835602,
-      lng: 77.01502627
-    },
-    zoom: 11
-  };
-
-  return (
-    // Important! Always set the container height explicitly
-    <div style={{ height: '100vh', width: '100%' }}>
-      <GoogleMapReact
-        bootstrapURLKeys={{ key: "" }}
-        defaultCenter={defaultProps.center}
-        defaultZoom={defaultProps.zoom}
-      >
-        <AnyReactComponent
-          lat={59.955413}
-          lng={30.337844}
-          text="My Marker"
-        />
-      </GoogleMapReact>
-    </div>
-  );
-}
-```
+THIS IS TEST PACKAGE, DO NOT USE
 
 ### My map doesn't appear!
 
@@ -82,30 +52,6 @@ There is no need to place a `<script src=` tag at top of page. The Google Maps A
 ### Use Google Maps API 
 
 You can access to Google Maps `map` and `maps` objects by using `onGoogleApiLoaded`, in this case you will need to set `yesIWantToUseGoogleMapApiInternals` to `true`
-
-```javascript
-...
-
-const handleApiLoaded = (map, maps) => {
-  // use map and maps objects
-};
-
-...
-
-<GoogleMapReact
-  bootstrapURLKeys={{ key: /* YOUR KEY HERE */ }}
-  defaultCenter={this.props.center}
-  defaultZoom={this.props.zoom}
-  yesIWantToUseGoogleMapApiInternals
-  onGoogleApiLoaded={({ map, maps }) => handleApiLoaded(map, maps)}
->
-  <AnyReactComponent
-    lat={59.955413}
-    lng={30.337844}
-    text="My Marker"
-  />
-</GoogleMapReact>
-```
 
 PST: Remember to set `yesIWantToUseGoogleMapApiInternals` to true.
 
