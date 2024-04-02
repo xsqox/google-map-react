@@ -652,82 +652,65 @@ class HereMaps extends Component {
 
     // render in overlay
     const this_ = this;
-    const overlay = Object.assign(new H.map.Overlay(), {
-      onAdd() {
-        const K_MAX_WIDTH =
-          typeof screen !== 'undefined' ? `${screen.width}px` : '2000px';
-        const K_MAX_HEIGHT =
-          typeof screen !== 'undefined' ? `${screen.height}px` : '2000px';
+    const overlay = new H.map.layer.DomLayer((element, renderParams) => {
+      const K_MAX_WIDTH =
+        typeof screen !== 'undefined' ? `${screen.width}px` : '2000px';
+      const K_MAX_HEIGHT =
+        typeof screen !== 'undefined' ? `${screen.height}px` : '2000px';
+      const div = document.createElement('div');
+      div.style.backgroundColor = 'transparent';
+      div.style.position = 'absolute';
+      div.style.left = '0px';
+      div.style.top = '0px';
+      div.style.width = K_MAX_WIDTH; // prevents some chrome draw defects
+      div.style.height = K_MAX_HEIGHT;
+      element.appendChild(div);
+      // element.innerHTML = `<div style='position:absolute;top:0px;left:0px;color:red;width:${K_MAX_WIDTH};height=${K_MAX_HEIGHT}'></div>`
+      if (!IS_REACT_16) {
+        createPortal(
+          this_,
+          this_._renderPortal(),
+          div,
+          // remove prerendered markers
+          () => this_.setState({ overlay: div })
+        );
+      } else {
+        this_.setState({ overlay: div });
+      }
+      this_.updateCounter_++;
+      this_._onBoundsChanged(map, maps, !this_.props.debounced);
 
-        const div = document.createElement('div');
-        div.style.backgroundColor = 'transparent';
-        div.style.position = 'absolute';
-        div.style.left = '0px';
-        div.style.top = '0px';
-        div.style.width = K_MAX_WIDTH; // prevents some chrome draw defects
-        div.style.height = K_MAX_HEIGHT;
+      // if (!this_.googleApiLoadedCalled_) {
+      //   this_._onGoogleApiLoaded({ map, maps, ref: this_.googleMapDom_ });
+      //   this_.googleApiLoadedCalled_ = true;
+      // }
 
-        if (this_.props.overlayViewDivStyle) {
-          const { overlayViewDivStyle } = this_.props;
-          if (typeof overlayViewDivStyle === 'object') {
-            Object.keys(overlayViewDivStyle).forEach((property) => {
-              div.style[property] = overlayViewDivStyle[property];
-            });
-          }
+      if (this_.mouse_) {
+        const latLng = this_.geoService_.fromContainerPixelToLatLng(
+          this_.mouse_
+        );
+        this_.mouse_.lat = latLng.lat;
+        this_.mouse_.lng = latLng.lng;
+      }
+
+      this_._onChildMouseMove();
+
+      if (this_.markersDispatcher_) {
+        this_.markersDispatcher_.emit('kON_CHANGE');
+        if (this_.fireMouseEventOnIdle_) {
+          this_.markersDispatcher_.emit('kON_MOUSE_POSITION_CHANGE');
         }
-
-        const panes = this.getPanes();
-        panes.overlayMouseTarget.appendChild(div);
-        this_.geoService_.setMapCanvasProjection(map, overlay.getProjection());
-
-        if (!IS_REACT_16) {
-          createPortal(
-            this_,
-            this_._renderPortal(),
-            div,
-            // remove prerendered markers
-            () => this_.setState({ overlay: div })
-          );
-        } else {
-          this_.setState({ overlay: div });
-        }
-      },
-
-      onRemove() {
-        const renderedOverlay = this_.state.overlay;
-        if (renderedOverlay && !IS_REACT_16) {
-          ReactDOM.unmountComponentAtNode(renderedOverlay);
-        }
-        this_.setState({ overlay: null });
-      },
-
-      draw() {
-        this_.updateCounter_++;
-        this_._onBoundsChanged(map, maps, !this_.props.debounced);
-
-        if (!this_.googleApiLoadedCalled_) {
-          this_._onGoogleApiLoaded({ map, maps, ref: this_.googleMapDom_ });
-          this_.googleApiLoadedCalled_ = true;
-        }
-
-        if (this_.mouse_) {
-          const latLng = this_.geoService_.fromContainerPixelToLatLng(
-            this_.mouse_
-          );
-          this_.mouse_.lat = latLng.lat;
-          this_.mouse_.lng = latLng.lng;
-        }
-
-        this_._onChildMouseMove();
-
-        if (this_.markersDispatcher_) {
-          this_.markersDispatcher_.emit('kON_CHANGE');
-          if (this_.fireMouseEventOnIdle_) {
-            this_.markersDispatcher_.emit('kON_MOUSE_POSITION_CHANGE');
-          }
-        }
-      },
+      }
+      return H.map.render.RenderState.DONE;
     });
+
+    overlay.addOnDisposeCallback = () => {
+      const renderedOverlay = this_.state.overlay;
+      if (renderedOverlay && !IS_REACT_16) {
+        ReactDOM.unmountComponentAtNode(renderedOverlay);
+      }
+      this_.setState({ overlay: null });
+    };
 
     this.overlay_ = overlay;
 
