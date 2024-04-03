@@ -718,7 +718,7 @@ class HereMaps extends Component {
 
     this.overlay_ = overlay;
 
-    map.addObject(overlay);
+    map.addLayer(overlay);
 
     // if (this.props.onTilesLoaded) {
     //   map.addListener('tilesloaded', () => {
