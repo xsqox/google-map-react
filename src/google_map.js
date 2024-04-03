@@ -622,7 +622,6 @@ class HereMaps extends Component {
 
     const domNode = ReactDOM.findDOMNode(this.googleMapDom_);
     console.info('domNode', domNode);
-    console.info('apiKey', this.props.apiKey);
 
     const map = new H.Map(
       ReactDOM.findDOMNode(this.googleMapDom_),
@@ -704,17 +703,18 @@ class HereMaps extends Component {
           this_.markersDispatcher_.emit('kON_MOUSE_POSITION_CHANGE');
         }
       }
+      console.info('rendering');
       return H.map.render.RenderState.DONE;
     });
-
-    overlay.addOnDisposeCallback = () => {
-      const renderedOverlay = this_.state.overlay;
-      if (renderedOverlay && !IS_REACT_16) {
-        ReactDOM.unmountComponentAtNode(renderedOverlay);
-      }
-      this.overlay_.dispose();
-      this_.setState({ overlay: null });
-    };
+    //
+    // overlay.addOnDisposeCallback = () => {
+    //   const renderedOverlay = this_.state.overlay;
+    //   if (renderedOverlay && !IS_REACT_16) {
+    //     ReactDOM.unmountComponentAtNode(renderedOverlay);
+    //   }
+    //   this.overlay_.dispose();
+    //   this_.setState({ overlay: null });
+    // };
 
     this.overlay_ = overlay;
 
