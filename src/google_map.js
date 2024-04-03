@@ -427,6 +427,7 @@ class HereMaps extends Component {
       }
     }
     // emit actions
+    console.info('emitting kON_CHANGE');
     this.markersDispatcher_.emit('kON_CHANGE');
 
     if (!shallowEqual(this.props.hoverDistance, prevProps.hoverDistance)) {
@@ -665,7 +666,6 @@ class HereMaps extends Component {
       div.style.height = K_MAX_HEIGHT;
       element.appendChild(div);
       this_.geoService_.setMapCanvasProjection(map, overlay.pixelProjection);
-      console.info('map canvas projection', overlay.mapCanvasProjection_);
       if (!IS_REACT_16) {
         createPortal(
           this_,
@@ -696,6 +696,7 @@ class HereMaps extends Component {
       this_._onChildMouseMove();
 
       if (this_.markersDispatcher_) {
+        console.info('emitting after init kON_CHANGE');
         this_.markersDispatcher_.emit('kON_CHANGE');
         if (this_.fireMouseEventOnIdle_) {
           this_.markersDispatcher_.emit('kON_MOUSE_POSITION_CHANGE');
@@ -968,6 +969,7 @@ class HereMaps extends Component {
     if (currTime - this.dragTime_ < K_IDLE_TIMEOUT) {
       this.fireMouseEventOnIdle_ = true;
     } else {
+      console.info('emitting kON_MOUSE_POSITION_CHANGE');
       this.markersDispatcher_.emit('kON_MOUSE_POSITION_CHANGE');
       this.fireMouseEventOnIdle_ = false;
     }
