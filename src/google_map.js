@@ -657,7 +657,7 @@ class HereMaps extends Component {
       const K_MAX_HEIGHT =
         typeof screen !== 'undefined' ? `${screen.height}px` : '2000px';
       const div = document.createElement('div');
-      div.style.backgroundColor = 'transparent';
+      div.style.backgroundColor = 'cyan';
       div.style.position = 'absolute';
       div.style.left = '0px';
       div.style.top = '0px';
