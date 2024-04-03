@@ -450,7 +450,8 @@ class HereMaps extends Component {
 
     if (this.overlay_) {
       // this triggers overlay_.onRemove(), which will unmount the <GoogleMapMarkers/>
-      this.overlay_.setMap(null);
+      // this.overlay_.setMap(null);
+      this.map_.removeLayer(this.overlay_);
     }
 
     if (this.maps_ && this.map_ && this.props.shouldUnregisterMapOnUnmount) {
@@ -725,7 +726,7 @@ class HereMaps extends Component {
     //   });
     // }
 
-    map.addEventListener('mapviewchange', () => {
+    map.addEventListener('mapviewchangeend', () => {
       // recalc position at zoom start
       console.info('changing map');
       const { zoom: mapZoom } = map.getViewModel().getLookAtData();
