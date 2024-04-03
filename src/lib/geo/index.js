@@ -90,7 +90,7 @@ export default class Geo {
       // const latLng = this.mapCanvasProjection_.fromContainerPixelToLatLng(ptXY);
       // return { lat: latLng.lat(), lng: latLng.lng() };
       console.info('ptXy', ptXY);
-      const point = this.mapCanvasProjection_.xyToGeo(ptXY.lat, ptXY.lng);
+      const point = this.mapCanvasProjection_.xyToGeo(ptXY.x, ptXY.y);
       return { lat: point.lat, lng: point.lng };
     }
 
