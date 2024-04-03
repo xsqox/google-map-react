@@ -657,7 +657,7 @@ class HereMaps extends Component {
       const K_MAX_HEIGHT =
         typeof screen !== 'undefined' ? `${screen.height}px` : '2000px';
       const div = document.createElement('div');
-      div.style.backgroundColor = 'cyan';
+      div.style.backgroundColor = 'transparent';
       div.style.position = 'absolute';
       div.style.left = '0px';
       div.style.top = '0px';
@@ -668,6 +668,7 @@ class HereMaps extends Component {
         map,
         overlay.mapCanvasProjection_
       );
+      console.info('map canvas projection', overlay.mapCanvasProjection_);
       if (!IS_REACT_16) {
         createPortal(
           this_,
@@ -706,15 +707,15 @@ class HereMaps extends Component {
       console.info('rendering');
       return H.map.render.RenderState.DONE;
     });
-    //
-    // overlay.addOnDisposeCallback = () => {
-    //   const renderedOverlay = this_.state.overlay;
-    //   if (renderedOverlay && !IS_REACT_16) {
-    //     ReactDOM.unmountComponentAtNode(renderedOverlay);
-    //   }
-    //   this.overlay_.dispose();
-    //   this_.setState({ overlay: null });
-    // };
+
+    overlay.addOnDisposeCallback = () => {
+      const renderedOverlay = this_.state.overlay;
+      if (renderedOverlay && !IS_REACT_16) {
+        ReactDOM.unmountComponentAtNode(renderedOverlay);
+      }
+      // this.overlay_.dispose();
+      this_.setState({ overlay: null });
+    };
 
     this.overlay_ = overlay;
 
