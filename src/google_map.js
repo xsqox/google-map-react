@@ -664,10 +664,7 @@ class HereMaps extends Component {
       div.style.width = K_MAX_WIDTH; // prevents some chrome draw defects
       div.style.height = K_MAX_HEIGHT;
       element.appendChild(div);
-      this_.geoService_.setMapCanvasProjection(
-        map,
-        overlay.mapCanvasProjection_
-      );
+      this_.geoService_.setMapCanvasProjection(map, overlay.pixelProjection);
       console.info('map canvas projection', overlay.mapCanvasProjection_);
       if (!IS_REACT_16) {
         createPortal(

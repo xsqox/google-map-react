@@ -49,8 +49,13 @@ export default class Geo {
    */
   fromLatLngToDivPixel(ptLatLng) {
     if (this.mapCanvasProjection_) {
-      const latLng = new this.maps_.LatLng(ptLatLng.lat, ptLatLng.lng);
-      return this.mapCanvasProjection_.fromLatLngToDivPixel(latLng);
+      // const latLng = new this.maps_.LatLng(ptLatLng.lat, ptLatLng.lng);
+      // return this.mapCanvasProjection_.fromLatLngToDivPixel(latLng);
+      // const latLng = new this.maps_.LatLng(ptLatLng.lat, ptLatLng.lng);
+      return this.mapCanvasProjection_.latLngToPixel(
+        ptLatLng.lat,
+        ptLatLng.lng
+      );
     }
     return this.fromLatLngToCenterPixel(ptLatLng);
   }
@@ -58,8 +63,15 @@ export default class Geo {
   /** Returns the pixel position relative to the map top-left. */
   fromLatLngToContainerPixel(ptLatLng) {
     if (this.mapCanvasProjection_) {
-      const latLng = new this.maps_.LatLng(ptLatLng.lat, ptLatLng.lng);
-      return this.mapCanvasProjection_.fromLatLngToContainerPixel(latLng);
+      // const latLng = new this.maps_.LatLng(ptLatLng.lat, ptLatLng.lng);
+      // return this.mapCanvasProjection_.fromLatLngToContainerPixel(latLng);
+      // const latLng = new this.maps_.LatLng(ptLatLng.lat, ptLatLng.lng);
+      // return this.mapCanvasProjection_.fromLatLngToDivPixel(latLng);
+      // const latLng = new this.maps_.LatLng(ptLatLng.lat, ptLatLng.lng);
+      return this.mapCanvasProjection_.latLngToPixel(
+        ptLatLng.lat,
+        ptLatLng.lng
+      );
     }
 
     const pt = this.fromLatLngToCenterPixel(ptLatLng);
