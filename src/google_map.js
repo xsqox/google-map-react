@@ -730,12 +730,16 @@ class HereMaps extends Component {
     map.addEventListener('mapviewchange', () => {
       // recalc position at zoom start
       const { zoom: mapZoom } = map.getViewModel().getLookAtData();
+      console.info('mapZoom', mapZoom);
 
       if (this_.geoService_.getZoom() !== mapZoom) {
         if (!this_.zoomAnimationInProgress_) {
           this_.zoomAnimationInProgress_ = true;
           this_._onZoomAnimationStart(mapZoom);
         }
+
+        this_.updateCounter_++;
+        this_._onBoundsChanged(map);
 
         // If draw() is not called each frame during a zoom animation,
         // simulate it.
@@ -1039,7 +1043,9 @@ class HereMaps extends Component {
   _onBoundsChanged = (map, maps, callExtBoundsChange) => {
     if (map) {
       const gmC = map.getCenter();
-      this.geoService_.setView([gmC.lat, gmC.lng], map.getZoom(), 0);
+      const { zoom: mapZoom } = map.getViewModel().getLookAtData();
+      console.info('bounds changed: mapZoom', mapZoom);
+      this.geoService_.setView([gmC.lat, gmC.lng], mapZoom, 0);
     }
 
     if (
