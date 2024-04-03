@@ -727,7 +727,7 @@ class HereMaps extends Component {
     //   });
     // }
 
-    map.addListener('mapviewchange', () => {
+    map.addEventListener('mapviewchange', () => {
       // recalc position at zoom start
       const { zoom: mapZoom } = map.getViewModel().getLookAtData();
 
@@ -766,7 +766,7 @@ class HereMaps extends Component {
       }
     });
     //
-    // maps.event.addListener(map, 'idle', () => {
+    // maps.event.addEventListener(map, 'idle', () => {
     //   if (this.resetSizeOnIdle_) {
     //     this._setViewSize();
     //     const currMinZoom = this._computeMinZoom(options.minZoom);
@@ -794,7 +794,7 @@ class HereMaps extends Component {
     //   }
     // });
     //
-    map.addListener('pointerenter', () => {
+    map.addEventListener('pointerenter', () => {
       // has advantage over div MouseLeave
       this_.mouseInMap_ = true;
     });
@@ -807,7 +807,7 @@ class HereMaps extends Component {
     //   this_.mouseInMap_ = true;
     // });
     //
-    map.addListener('pointerleave', () => {
+    map.addEventListener('pointerleave', () => {
       // has advantage over div MouseLeave
       this_.mouseInMap_ = false;
       this_.mouse_ = null;
