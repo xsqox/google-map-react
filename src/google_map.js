@@ -734,10 +734,10 @@ class HereMaps extends Component {
         if (!this_.zoomAnimationInProgress_) {
           this_.zoomAnimationInProgress_ = true;
           this_._onZoomAnimationStart(mapZoom);
-        }
 
-        this_.updateCounter_++;
-        this_._onBoundsChanged(map);
+          this_.updateCounter_++;
+          this_._onBoundsChanged(map);
+        }
 
         // If draw() is not called each frame during a zoom animation,
         // simulate it.
