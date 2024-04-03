@@ -729,6 +729,7 @@ class HereMaps extends Component {
       // recalc position at zoom start
       const { zoom: mapZoom } = map.getViewModel().getLookAtData();
       console.info('mapZoom', mapZoom);
+      console.info('geo service zoom', this_.geoService_.getZoom());
 
       if (this_.geoService_.getZoom() !== mapZoom) {
         if (!this_.zoomAnimationInProgress_) {
